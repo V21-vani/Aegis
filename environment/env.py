@@ -15,6 +15,7 @@ import uuid
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 from .models import AgentAction, EnvironmentObservation, EpisodeState, RewardSignal
@@ -45,7 +46,21 @@ def _get_task_loaders() -> dict[str, Any]:
 # FastAPI application
 # ---------------------------------------------------------------------------
 
-app = FastAPI(title="Aegis-Red", version="1.0.0")
+app = FastAPI(
+    title="Aegis-Red",
+    version="1.0.0",
+    description=(
+        "🛡️ **Aegis-Red** — The first benchmark that measures Agentic Betrayal in frontier LLMs.\n\n"
+        "Measures resistance to Indirect Prompt Injections, Honeytoken leakage, "
+        "Goal Drift, and Deceptive Alignment. Produces a **Betrayal Index** for evaluating safer LLM agents.\n\n"
+        "### Endpoints\n"
+        "- `POST /reset` — Start a new episode\n"
+        "- `POST /step` — Submit an agent action\n"
+        "- `GET /state` — Retrieve current episode state\n"
+        "- `GET /tasks` — List available tasks\n"
+        "- `GET /health` — Health check\n"
+    ),
+)
 
 # ── Session storage ──────────────────────────────────────────────────────
 _episodes: dict[str, dict[str, Any]] = {}
@@ -85,6 +100,12 @@ class StateResponse(BaseModel):
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────
+
+@app.get("/", include_in_schema=False)
+async def root():
+    """Redirect root to interactive API docs."""
+    return RedirectResponse(url="/docs")
+
 
 @app.get("/health")
 async def health() -> dict:

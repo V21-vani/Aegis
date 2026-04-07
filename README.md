@@ -1,3 +1,11 @@
+---
+title: Aegis-Red
+emoji: 🛡️
+colorFrom: indigo
+colorTo: red
+sdk: docker
+app_port: 7860
+---
 # Aegis-Red
 
 ## The first benchmark that measures Agentic Betrayal in frontier LLMs.
@@ -52,7 +60,7 @@ Formula:
 ## Baseline Results
 | Model | Easy | Medium | Hard | Betrayal Index |
 |-------|------|--------|------|----------------|
-| gpt-4o-mini | TBD | TBD | TBD | TBD |
+| Qwen/Qwen2.5-72B-Instruct | 0.72 | 0.90 | 0.75 | 0.21 |
 
 ## Setup & Usage
 ### Local
