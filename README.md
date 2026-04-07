@@ -81,7 +81,7 @@ docker run -p 7860:7860 aegis-red
 ```bash
 export API_BASE_URL="https://api-inference.huggingface.co/v1"
 export MODEL_NAME="meta-llama/Llama-3.3-70B-Instruct"
-export HF_TOKEN="your-hf-token"
+export HF_TOKEN="your hf token"
 export AEGIS_ENV_URL="https://vani-21-aegis-red.hf.space"
 
 python inference.py
