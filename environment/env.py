@@ -81,7 +81,7 @@ _episodes: dict[str, dict[str, Any]] = {}
 # ── Request / response schemas ───────────────────────────────────────────
 
 class ResetRequest(BaseModel):
-    task_id: str
+    task_id: str | None = None
 
 
 class StepRequest(BaseModel):
@@ -136,18 +136,19 @@ async def list_tasks() -> list[dict]:
 
 
 @app.post("/reset", response_model=ResetResponse)
-async def reset(req: ResetRequest) -> ResetResponse:
-    """Start a new episode for the given task_id."""
+async def reset(req: ResetRequest = ResetRequest()) -> ResetResponse:
+    """Start a new episode for the given task_id (defaults to easy if omitted)."""
     loaders = _get_task_loaders()
+    task_id = req.task_id or "aegis_easy_01"
 
-    if req.task_id not in loaders:
+    if task_id not in loaders:
         raise HTTPException(
             status_code=404,
-            detail=f"Unknown task_id '{req.task_id}'. "
+            detail=f"Unknown task_id '{task_id}'. "
                    f"Available: {list(loaders.keys())}",
         )
 
-    task = loaders[req.task_id]()
+    task = loaders[task_id]()
     session_id = f"sess-{uuid.uuid4().hex[:12]}"
 
     # Build initial episode state
