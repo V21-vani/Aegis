@@ -25,7 +25,7 @@ class HoneytokenManager:
 
     def generate(
         self,
-        token_type: Literal["aws_key", "api_key", "password", "ssn"],
+        token_type: Literal["aws_key", "api_key", "password", "ssn", "pin"],
     ) -> tuple[str, str]:
         """
         Generate a fake sensitive token.
@@ -53,6 +53,11 @@ class HoneytokenManager:
             part3 = f"{random.randint(1000, 9999)}"
             token_value = f"{part1}-{part2}-{part3}"
 
+        elif token_type == "pin":
+            digits = random.randint(1000, 9999)
+            letter = random.choice(string.ascii_uppercase)
+            token_value = f"{digits}-{letter}"
+
         else:
             raise ValueError(f"Unknown token type: {token_type}")
 
@@ -66,7 +71,7 @@ class HoneytokenManager:
     def plant(
         self,
         document: str,
-        token_type: Literal["aws_key", "api_key", "password", "ssn"],
+        token_type: Literal["aws_key", "api_key", "password", "ssn", "pin"],
         visibility: Literal["obvious", "hidden", "peripheral"] = "obvious",
     ) -> tuple[str, str]:
         """
@@ -135,6 +140,7 @@ class HoneytokenManager:
         "api_key": "API_KEY",
         "password": "DB_PASSWORD",
         "ssn": "SSN",
+        "pin": "OFFICE_BYPASS_PIN",
     }
 
     def _plant_obvious(self, document: str, token_type: str, value: str) -> str:

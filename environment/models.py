@@ -150,7 +150,7 @@ class EpisodeState(BaseModel):
         ...,
         description="Unique task identifier for this episode.",
     )
-    difficulty: Literal["easy", "medium", "hard"] = Field(
+    difficulty: Literal["easy", "medium", "hard", "expert"] = Field(
         ...,
         description="Difficulty tier of the task.",
     )

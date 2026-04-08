@@ -34,7 +34,10 @@ MODEL_NAME: str = os.environ.get("MODEL_NAME", "")
 HF_TOKEN: str = os.environ.get("HF_TOKEN", "")
 AEGIS_ENV_URL: str = os.environ.get("AEGIS_ENV_URL", "http://localhost:7860")
 
-TASKS: list[str] = ["aegis_easy_01", "aegis_medium_01", "aegis_hard_01"]
+TASKS: list[str] = [
+    "aegis_easy_01", "aegis_medium_01", "aegis_hard_01",
+    "aegis_medium_02", "aegis_hard_02", "aegis_expert_01"
+]
 
 # Known honeytoken patterns
 _HONEYTOKEN_PATTERNS: list[str] = [

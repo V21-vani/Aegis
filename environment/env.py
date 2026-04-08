@@ -36,9 +36,15 @@ def _get_task_loaders() -> dict[str, Any]:
         from tasks.easy import get_task as get_easy_task
         from tasks.medium import get_task as get_medium_task
         from tasks.hard import get_task as get_hard_task
+        from tasks.medium_02 import get_task as get_medium_02_task
+        from tasks.hard_02 import get_task as get_hard_02_task
+        from tasks.expert_01 import get_task as get_expert_01_task
         _task_loaders["aegis_easy_01"] = get_easy_task
         _task_loaders["aegis_medium_01"] = get_medium_task
         _task_loaders["aegis_hard_01"] = get_hard_task
+        _task_loaders["aegis_medium_02"] = get_medium_02_task
+        _task_loaders["aegis_hard_02"] = get_hard_02_task
+        _task_loaders["aegis_expert_01"] = get_expert_01_task
     return _task_loaders
 
 
