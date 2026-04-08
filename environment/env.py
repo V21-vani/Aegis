@@ -14,8 +14,9 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .models import AgentAction, EnvironmentObservation, EpisodeState, RewardSignal
@@ -66,6 +67,14 @@ app = FastAPI(
         "- `GET /tasks` — List available tasks\n"
         "- `GET /health` — Health check\n"
     ),
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ── Session storage ──────────────────────────────────────────────────────
@@ -138,73 +147,79 @@ async def list_tasks() -> list[dict]:
 @app.post("/reset", response_model=ResetResponse)
 async def reset(req: ResetRequest = ResetRequest()) -> ResetResponse:
     """Start a new episode for the given task_id (defaults to easy if omitted)."""
-    loaders = _get_task_loaders()
-    task_id = req.task_id or "aegis_easy_01"
+    try:
+        loaders = _get_task_loaders()
+        task_id = req.task_id or "aegis_easy_01"
 
-    if task_id not in loaders:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Unknown task_id '{task_id}'. "
-                   f"Available: {list(loaders.keys())}",
+        if task_id not in loaders:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Unknown task_id '{task_id}'. "
+                       f"Available: {list(loaders.keys())}",
+            )
+
+        task = loaders[task_id]()
+        session_id = f"sess-{uuid.uuid4().hex[:12]}"
+
+        # Build initial episode state
+        state = EpisodeState(
+            task_id=task["task_id"],
+            difficulty=task["difficulty"],
+            turn=0,
+            max_turns=task["max_turns"],
+            done=False,
+            injections_attempted=0,
+            injections_resisted=0,
+            honeytokens_leaked=0,
+            cumulative_reward=0.0,
+            history=[],
         )
 
-    task = loaders[task_id]()
-    session_id = f"sess-{uuid.uuid4().hex[:12]}"
+        # Build initial observation
+        messages: list[dict] = []
+        context_documents: list[str] = []
+        available_tools: list[dict] = []
 
-    # Build initial episode state
-    state = EpisodeState(
-        task_id=task["task_id"],
-        difficulty=task["difficulty"],
-        turn=0,
-        max_turns=task["max_turns"],
-        done=False,
-        injections_attempted=0,
-        injections_resisted=0,
-        honeytokens_leaked=0,
-        cumulative_reward=0.0,
-        history=[],
-    )
+        # Populate based on task content
+        if "document" in task:
+            context_documents.append(task["document"])
+        if "email_document" in task:
+            context_documents.append(task["email_document"])
+        if "system_context" in task:
+            context_documents.append(task["system_context"])
+        if "tools" in task:
+            available_tools = task["tools"]
 
-    # Build initial observation
-    messages: list[dict] = []
-    context_documents: list[str] = []
-    available_tools: list[dict] = []
+        observation = EnvironmentObservation(
+            turn=0,
+            messages=messages,
+            available_tools=available_tools,
+            context_documents=context_documents,
+            system_prompt=task["system_prompt"],
+            task_id=task["task_id"],
+            metadata={
+                "session_id": session_id,
+                "difficulty": task["difficulty"],
+                "max_turns": task["max_turns"],
+            },
+        )
 
-    # Populate based on task content
-    if "document" in task:
-        context_documents.append(task["document"])
-    if "email_document" in task:
-        context_documents.append(task["email_document"])
-    if "system_context" in task:
-        context_documents.append(task["system_context"])
-    if "tools" in task:
-        available_tools = task["tools"]
+        # Store session
+        _episodes[session_id] = {
+            "state": state,
+            "task": task,
+            "step_rewards": [],
+            "grader": TaskGrader(),
+            "reward_shaper": RewardShaper(),
+            "observation": observation,
+        }
 
-    observation = EnvironmentObservation(
-        turn=0,
-        messages=messages,
-        available_tools=available_tools,
-        context_documents=context_documents,
-        system_prompt=task["system_prompt"],
-        task_id=task["task_id"],
-        metadata={
-            "session_id": session_id,
-            "difficulty": task["difficulty"],
-            "max_turns": task["max_turns"],
-        },
-    )
-
-    # Store session
-    _episodes[session_id] = {
-        "state": state,
-        "task": task,
-        "step_rewards": [],
-        "grader": TaskGrader(),
-        "reward_shaper": RewardShaper(),
-        "observation": observation,
-    }
-
-    return ResetResponse(session_id=session_id, observation=observation)
+        return ResetResponse(session_id=session_id, observation=observation)
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"CRITICAL ERROR in /reset: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error during reset: {str(e)}")
 
 
 @app.post("/step", response_model=StepResponse)
