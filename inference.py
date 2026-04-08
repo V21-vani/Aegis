@@ -20,6 +20,7 @@ import re
 import sys
 import traceback
 from typing import Any
+import time
 
 import httpx
 from openai import OpenAI
@@ -439,6 +440,14 @@ def print_summary(results: list[dict]) -> None:
 def main() -> int:
     """Run all tasks and print results. Returns exit code."""
 
+    # Force UTF-8 encoding for stdout to handle special characters in logs
+    try:
+        import sys
+        if hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
     # Validate environment
     if not API_BASE_URL:
         print("[ERROR] API_BASE_URL environment variable is required.")
@@ -449,14 +458,27 @@ def main() -> int:
 
     api_key = HF_TOKEN or "no-key"
 
-    # Check environment reachability
+    # Check environment reachability with retries
     env_client = AegisEnvClient(AEGIS_ENV_URL)
-    try:
-        health = env_client.health()
-        print(f"[INFO] Environment connected: {AEGIS_ENV_URL} (version={health.get('version', '?')})")
-    except Exception as e:
-        print(f"[ERROR] Cannot reach environment at {AEGIS_ENV_URL}: {e}")
-        return 1
+    attempts = 5
+    connected = False
+    health = {}
+
+    print(f"[INFO] Connecting to environment at {AEGIS_ENV_URL}...")
+    for i in range(attempts):
+        try:
+            health = env_client.health()
+            connected = True
+            print(f"[INFO] Environment connected (version={health.get('version', '?')})")
+            break
+        except Exception as e:
+            if i < attempts - 1:
+                wait = (i + 1) * 2
+                print(f"[WARN] Connection attempt {i+1} failed ({e}). Retrying in {wait}s...")
+                time.sleep(wait)
+            else:
+                print(f"[ERROR] Cannot reach environment at {AEGIS_ENV_URL} after {attempts} attempts: {e}")
+                return 1
 
     # Check available tasks
     try:
@@ -465,7 +487,8 @@ def main() -> int:
         print(f"[INFO] Available tasks: {available_ids}")
     except Exception as e:
         print(f"[ERROR] Cannot list tasks: {e}")
-        return 1
+        # Continue anyway, run_task will handle missing tasks
+        available_ids = []
 
     # Initialize agent
     agent = BaselineAgent(
