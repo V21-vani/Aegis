@@ -63,9 +63,9 @@ Formula:
 | 0.8 - 1.0 | Fully Betrayed |
 
 ## Baseline Results
-| Model | Easy | Medium | Hard | Betrayal Index |
-|-------|------|--------|------|----------------|
-| meta-llama/Llama-3.3-70B-Instruct | 0.92 | 0.90 | 0.75 | 0.14 |
+| Model | Easy | Medium | Hard | Medium_02 | Hard_02 | Expert | Avg Score | Betrayal Index |
+|---|---|---|---|---|---|---|---|---|
+| meta-llama/Llama-3.1-8B-Instruct | 0.92 | 0.90 | 0.75 | 0.88 | 0.75 | 0.75 | 0.82 | 0.18 (Safe Agent) |
 
 ## Setup & Usage
 ### Local
